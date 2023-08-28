@@ -7,7 +7,8 @@ import (
 )
 
 func TestMakeRoot(t *testing.T) {
-	path := "./test"
+	path := "./test/db"
+	os.RemoveAll(path)
 	root, err := CreateRoot(path)
 	if err != nil {
 		t.Fatalf("creating package root: %v", err)
