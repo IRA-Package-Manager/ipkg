@@ -2,7 +2,10 @@ package ipkg
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 )
 
@@ -68,4 +71,27 @@ func UnserializeDependencies(serialized string) map[string]bool {
 		result[clearId] = (id[len(id)-3:] == "(!)")
 	}
 	return result
+}
+
+// ParseConfig parse config file set in path and return PkgConfig
+func ParseConfig(path string) (*PkgConfig, error) {
+	var config *PkgConfig
+	// Firstly, we're opening config file
+	configFile, err := os.OpenFile(path, os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		return config, err
+	}
+	defer configFile.Close()
+	// Secondary, we read this file (and close it)
+	configJson, err := io.ReadAll(configFile)
+	if err != nil {
+		return config, fmt.Errorf("reading config file: %v", err)
+	}
+	configFile.Close()
+	// And finally, we unmarshal JSON content and getting config
+	err = json.Unmarshal(configJson, config)
+	if err != nil {
+		return config, fmt.Errorf("parsing config as JSON: %v", err)
+	}
+	return config, nil
 }
