@@ -8,11 +8,13 @@ import (
 	"github.com/ira-package-manager/ipkg"
 )
 
-func TestInstall(t *testing.T) {
+func TestInstallAndRemove(t *testing.T) {
+	// Opening database
 	root, err := ipkg.OpenRoot("./test/db")
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Checking installisation
 	err = root.InstallPackage("./test/pkgs/testpkg", true)
 	if err != nil {
 		t.Fatal(err)
@@ -28,6 +30,22 @@ func TestInstall(t *testing.T) {
 	}
 	if _, err = root.FindPackage("testpkg", "1.0"); err == sql.ErrNoRows {
 		t.Error("package is not in database")
+	}
+	if t.Failed() {
+		return
+	}
+	// Checking remove
+	err = root.RemovePackage("testpkg", "1.0", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists("./test/db/testpkg-$1.0") {
+		t.Error("package wasn't removed")
+	}
+	if _, err = root.FindPackage("testpkg", "1.0"); err == nil {
+		t.Error("package is still in database")
+	} else if err != sql.ErrNoRows {
+		t.Error(err)
 	}
 }
 
