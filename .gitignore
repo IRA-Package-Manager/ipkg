@@ -19,3 +19,6 @@
 
 # Go workspace file
 go.work
+
+# Test files
+test/testpkg-$1.0
