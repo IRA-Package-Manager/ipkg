@@ -26,3 +26,18 @@ func TestMakeRoot(t *testing.T) {
 		t.Fatal("database wasn't created")
 	}
 }
+
+func TestOpenRoot(t *testing.T) {
+	path := "./test/db"
+	os.RemoveAll(path)
+	root, err := CreateRoot(path)
+	if err != nil {
+		t.Fatalf("opening package root: %v", err)
+	}
+	if root == nil {
+		t.Fatal("package root wasn't returned")
+	}
+	if root.path != path {
+		t.Errorf("root has wrong path: got %q, expepected %q", root.path, path)
+	}
+}

@@ -1,0 +1,3 @@
+flag install
+install 777 mv "/scripts/run.sh" "/launch.sh"
+install 777 mv "/cfg/main.ini" "/testing.ini"

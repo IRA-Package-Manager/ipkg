@@ -35,7 +35,7 @@ func (cfg *PkgConfig) CheckDependencies(root *Root) (bool, error) {
 		}
 
 		// ...and trying to get package from database
-		err = root.db.QueryRow("SELECT name FROM packages WHERE name=? AND version=?", name, version).Scan(&name)
+		_, err = root.FindPackage(name, version)
 		if err == sql.ErrNoRows { // If got no rows
 			return false, nil
 		}
@@ -51,6 +51,9 @@ func (cfg *PkgConfig) CheckDependencies(root *Root) (bool, error) {
 // Flag specifies is package required (!) or not (?)
 func (cfg *PkgConfig) SerializeDependencies() string {
 	var result string
+	if len(cfg.Dependencies) == 0 {
+		return result // ""
+	}
 	for id, isRequired := range cfg.Dependencies {
 		if isRequired { // setting flag
 			result += id + "(!);"
@@ -65,6 +68,9 @@ func (cfg *PkgConfig) SerializeDependencies() string {
 // and returns source map (keys are IDs, values are boolean means dependency is required or not)
 func UnserializeDependencies(serialized string) map[string]bool {
 	result := make(map[string]bool)
+	if serialized == "" {
+		return result // map[string]bool{}
+	}
 	ids := strings.Split(serialized, ";")
 	for _, id := range ids {
 		clearId := id[:len(id)-3] // Getting ID without flag
@@ -89,7 +95,7 @@ func ParseConfig(path string) (*PkgConfig, error) {
 	}
 	configFile.Close()
 	// And finally, we unmarshal JSON content and getting config
-	err = json.Unmarshal(configJson, config)
+	err = json.Unmarshal(configJson, &config)
 	if err != nil {
 		return config, fmt.Errorf("parsing config as JSON: %v", err)
 	}

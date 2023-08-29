@@ -83,7 +83,7 @@ func (r *Root) InstallPackage(path string) error {
 		log.Println("script output: ", out.String())
 	}
 	// Creating installation folder
-	installDir := filepath.Join(r.path, config.Name+"."+config.Version)
+	installDir := filepath.Join(r.path, config.Name+"-$"+config.Version)
 	if err = os.Mkdir(installDir, os.ModePerm); !os.IsExist(err) && err != nil {
 		return fmt.Errorf("creating installation folder: %v", err)
 	}
@@ -103,7 +103,7 @@ func (r *Root) InstallPackage(path string) error {
 		return fmt.Errorf("creating configuration folder: %v", err)
 	}
 
-	err = copy(filepath.Join(workPath, ".ira", "iscript"), filepath.Join(installDir, ".ita", "iscript"))
+	err = copy(filepath.Join(workPath, ".ira", "iscript"), filepath.Join(installDir, ".ira", "iscript"))
 	if err != nil {
 		return fmt.Errorf("saving IScript: %v", err)
 	}

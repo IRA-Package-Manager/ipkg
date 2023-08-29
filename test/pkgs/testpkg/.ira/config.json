@@ -1,0 +1,8 @@
+{
+    "Name": "testpkg",
+    "Version": "1.0",
+    "Dependencies": {},
+    "SupportWindows": true,
+    "SupportLinux": true,
+    "Build": false
+}

@@ -91,3 +91,40 @@ func setupPackageRoot(path string) (*Root, error) {
 	pkgroot.db = db
 	return pkgroot, nil
 }
+
+// This function gets package by name and version. If there is no package, returns sql.ErrNoRows
+func (r *Root) FindPackage(name string, version string) (*PkgConfig, error) {
+	cfg := new(PkgConfig)
+	cfg.Name = name
+	cfg.Version = version
+	var dependencies string
+	err := r.db.QueryRow("SELECT dependencies FROM packages WRERE name = ? AND version = ?", name, version).Scan(&dependencies)
+	if err != nil {
+		return nil, err
+	}
+	cfg.Dependencies = UnserializeDependencies(dependencies)
+	return cfg, nil
+}
+
+// This function return all packages with the same name
+func (r *Root) FindPackagesByName(name string) ([]PkgConfig, error) {
+	var result []PkgConfig
+	rows, err := r.db.Query("SELECT version, dependencies FROM packages WHERE name = ?", name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cfg PkgConfig
+		var version, dependencies string
+		err = rows.Scan(&version, &dependencies)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Name = name
+		cfg.Version = version
+		cfg.Dependencies = UnserializeDependencies(dependencies)
+		result = append(result, cfg)
+	}
+	return result, rows.Err()
+}
