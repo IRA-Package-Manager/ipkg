@@ -1,2 +1,4 @@
+github.com/ira-package-manager/iscript v0.0.0-20230829074914-e717eb61ebaf h1:cMUJMQLuxlzyfesLuHJyY0E/L4woC4n1nrPLZNtLV4U=
+github.com/ira-package-manager/iscript v0.0.0-20230829074914-e717eb61ebaf/go.mod h1:qU+qOxZDhPRhqKJkUEZskSQQ0ULI7HhVUElqz3MZTLs=
 github.com/mattn/go-sqlite3 v1.14.17 h1:mCRHCLDUBXgpKAqIKsaAaAsrAlbkeomtRFKXh2L6YIM=
 github.com/mattn/go-sqlite3 v1.14.17/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg=
