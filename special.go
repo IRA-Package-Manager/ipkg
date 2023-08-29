@@ -69,3 +69,12 @@ func unzipFile(f *zip.File, destination string) error {
 	return nil
 
 }
+
+func exists(filePaths ...string) bool {
+	for _, path := range filePaths {
+		if _, err := os.Lstat(path); os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}

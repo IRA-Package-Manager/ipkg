@@ -2,7 +2,9 @@ package ipkg
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -15,8 +17,9 @@ import (
 	"github.com/ira-package-manager/iscript"
 )
 
-// This function install package which should be set in path
-func (r *Root) InstallPackage(path string) error {
+// This function install package which should be set in path. If package is installed by user, asDependency must be false
+// If package must be installed for another program (as dependency), you should set it as true
+func (r *Root) InstallPackage(path string, asDependency bool) error {
 	// Checking input argument
 	pkginfo, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -64,6 +67,14 @@ func (r *Root) InstallPackage(path string) error {
 	default:
 		return fmt.Errorf("unsupported os: %v", runtime.GOOS)
 	}
+
+	// Checking is package installed
+	_, err = r.FindPackage(config.Name, config.Version)
+	if err == nil {
+		return fmt.Errorf("package %s-$%s is already installed", config.Name, config.Version)
+	} else if err != sql.ErrNoRows {
+		return fmt.Errorf("checking is package installed: %v", err)
+	}
 	// Checking dependencies
 	ok, err := config.CheckDependencies(r)
 	if err != nil {
@@ -108,9 +119,77 @@ func (r *Root) InstallPackage(path string) error {
 		return fmt.Errorf("saving IScript: %v", err)
 	}
 	// After all, adding package to database
-	_, err = r.db.Exec("INSERT INTO packages VALUES (NULL, ?, ?, ?)", config.Name, config.Version, config.SerializeDependencies())
+	var byUser int
+	if asDependency {
+		byUser = 0
+	} else {
+		byUser = 1
+	}
+	_, err = r.db.Exec("INSERT INTO packages VALUES (NULL, ?, ?, ?, ?, 0)", config.Name, config.Version, config.SerializeDependencies(), byUser)
 	if err != nil {
 		return fmt.Errorf("adding package to database: %v", err)
+	}
+	return nil
+}
+
+func (r *Root) RemovePackage(name, version string, removeDependencies bool) error {
+	pkg, err := r.FindPackage(name, version)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("package %s-$%s is not installed", name, version)
+	}
+	if removeDependencies {
+		err = pkg.ForEachDependency(func(depName, depVersion string, isRequired bool) error {
+			isDependency, err := r.IsDependency(depName, depVersion)
+			if err == sql.ErrNoRows {
+				return nil
+			} else if err != nil {
+				return fmt.Errorf("checking is %s-$%s a dependency : %v", depName, depVersion, err)
+			}
+			if !isDependency {
+				return nil
+			}
+			canBeRemoved, err := r.CanBeRemoved(depName, depVersion)
+			if err != nil {
+				return fmt.Errorf("checking can %s-$%s be removed: %v", depName, depVersion, err)
+			}
+			if !canBeRemoved {
+				return nil
+			}
+			err = r.RemovePackage(depName, depVersion, true)
+			if err != nil {
+				return fmt.Errorf("removing dependency %s-$%s: %v", depName, depVersion, err)
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	log := filepath.Join(r.path, name+"-$"+version, ".ira", "activate.log")
+	if exists(log) {
+		file, err := os.Open(log)
+		if err != nil {
+			return fmt.Errorf("opening activation log: %v", err)
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			// Note: igroring errors
+			os.Remove(scanner.Text())
+		}
+		if scanner.Err() != nil {
+			return fmt.Errorf("scanning activation log: %v", err)
+		}
+		file.Close()
+	}
+	_, err = r.db.Exec("DELETE FROM packages WHERE name = ? AND version = ?", name, version)
+	if err != nil {
+		return fmt.Errorf("removing package from database: %v", err)
+	}
+	// TODO: parse IScript
+	err = os.RemoveAll(filepath.Join(r.path, name+"-$"+version))
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing package files: %v", err)
 	}
 	return nil
 }

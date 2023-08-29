@@ -13,7 +13,7 @@ func TestInstall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = root.InstallPackage("./test/pkgs/testpkg")
+	err = root.InstallPackage("./test/pkgs/testpkg", true)
 	if err != nil {
 		t.Fatal(err)
 	}

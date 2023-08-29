@@ -51,6 +51,83 @@ func OpenRoot(path string) (*Root, error) {
 	return setupPackageRoot(path)
 }
 
+// This function gets package by name and version. If there is no package, returns sql.ErrNoRows
+func (r *Root) FindPackage(name string, version string) (*PkgConfig, error) {
+	cfg := new(PkgConfig)
+	cfg.Name = name
+	cfg.Version = version
+	var dependencies string
+	err := r.db.QueryRow("SELECT dependencies FROM packages WHERE name = ? AND version = ?", name, version).Scan(&dependencies)
+	if err == sql.ErrNoRows {
+		return nil, err
+	} else if err != nil {
+		return nil, fmt.Errorf("in FindPackage: %v", err)
+	}
+	cfg.Dependencies = UnserializeDependencies(dependencies)
+	return cfg, nil
+}
+
+// This function return all packages with the same name
+func (r *Root) FindPackagesByName(name string) ([]PkgConfig, error) {
+	var result []PkgConfig
+	rows, err := r.db.Query("SELECT version, dependencies FROM packages WHERE name = ?", name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cfg PkgConfig
+		var version, dependencies string
+		err = rows.Scan(&version, &dependencies)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Name = name
+		cfg.Version = version
+		cfg.Dependencies = UnserializeDependencies(dependencies)
+		result = append(result, cfg)
+	}
+	return result, rows.Err()
+}
+
+// This function checks is package installed by user (false) or as dependency (true).
+func (r *Root) IsDependency(name, version string) (bool, error) {
+	var byUser int
+	err := r.db.QueryRow("SELECT by_user FROM packages WHERE name = ? AND version = ?", name, version).Scan(&byUser)
+	if err == sql.ErrNoRows {
+		return false, err
+	} else if err != nil {
+		return false, fmt.Errorf("in IsDependency: %v", err)
+	}
+	return byUser == 0, nil
+}
+
+// This function tries to mark package as installed by user
+func (r *Root) MarkAsUserInstalled(name, version string) error {
+	isDependency, err := r.IsDependency(name, version)
+	if err == sql.ErrNoRows {
+		return err
+	} else if err != nil {
+		return fmt.Errorf("in MarkAsUserInstalled: %v", err)
+	}
+	if !isDependency {
+		return fmt.Errorf("package %s-$%s isn't a dependency", name, version)
+	}
+	_, err = r.db.Exec("UPDATE packages SET by_user = 1 WHERE name = ? AND version = ?", name, version)
+	return err
+}
+
+func (r *Root) CanBeRemoved(name, version string) (bool, error) {
+	var usedBy int
+	err := r.db.QueryRow("SELECT used_by FROM packages WHERE name = ? AND version = ?", name, version).Scan(&usedBy)
+	if err == sql.ErrNoRows {
+		return false, err
+	} else if err != nil {
+		return false, fmt.Errorf("in CanBeRemoved: %v", err)
+	}
+	return usedBy == 0, nil
+}
+
 func checkRootPath(path string, create bool) error {
 	pathinfo, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -82,7 +159,9 @@ func setupPackageRoot(path string) (*Root, error) {
 		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
 		version TEXT NOT NULL,
-		dependencies TEXT NOT NULL
+		dependencies TEXT NOT NULL,
+		by_user INTEGER NOT NULL DEFAULT (0),
+		used_by INTEGER NOT NULL DEFAULT (0)
 	);`)
 	if err != nil {
 		return nil, fmt.Errorf("setup database: %v", err)
@@ -90,41 +169,4 @@ func setupPackageRoot(path string) (*Root, error) {
 	// Setting database
 	pkgroot.db = db
 	return pkgroot, nil
-}
-
-// This function gets package by name and version. If there is no package, returns sql.ErrNoRows
-func (r *Root) FindPackage(name string, version string) (*PkgConfig, error) {
-	cfg := new(PkgConfig)
-	cfg.Name = name
-	cfg.Version = version
-	var dependencies string
-	err := r.db.QueryRow("SELECT dependencies FROM packages WRERE name = ? AND version = ?", name, version).Scan(&dependencies)
-	if err != nil {
-		return nil, err
-	}
-	cfg.Dependencies = UnserializeDependencies(dependencies)
-	return cfg, nil
-}
-
-// This function return all packages with the same name
-func (r *Root) FindPackagesByName(name string) ([]PkgConfig, error) {
-	var result []PkgConfig
-	rows, err := r.db.Query("SELECT version, dependencies FROM packages WHERE name = ?", name)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var cfg PkgConfig
-		var version, dependencies string
-		err = rows.Scan(&version, &dependencies)
-		if err != nil {
-			return nil, err
-		}
-		cfg.Name = name
-		cfg.Version = version
-		cfg.Dependencies = UnserializeDependencies(dependencies)
-		result = append(result, cfg)
-	}
-	return result, rows.Err()
 }

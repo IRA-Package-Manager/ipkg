@@ -46,6 +46,25 @@ func (cfg *PkgConfig) CheckDependencies(root *Root) (bool, error) {
 	return true, nil
 }
 
+// ForEachDependency runs function func for each dependency
+// Inner function gets name, version and status (required or not) of current dependency
+// If inner function returns error, loop stops and function returns this error
+func (cfg *PkgConfig) ForEachDependency(inner func(string, string, bool) error) error {
+	for id, isRequired := range cfg.Dependencies {
+		var name, version string
+		// Parsing ID
+		_, err := fmt.Sscanf(id, "%s-$%s", &name, &version)
+		if err != nil {
+			return fmt.Errorf("parsing id %s: %v", id, err)
+		}
+		err = inner(name, version, isRequired)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SerializeDependencies prepares package dependencies for saving in database
 // by saving them in one string. Format: dependencyID1(flag1);dependencyID2(flag2);...;dependencyIDN(flagN)
 // Flag specifies is package required (!) or not (?)
