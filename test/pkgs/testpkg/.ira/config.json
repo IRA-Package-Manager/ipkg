@@ -4,5 +4,5 @@
     "Dependencies": {},
     "SupportWindows": true,
     "SupportLinux": true,
-    "Build": false
+    "Build": true
 }
