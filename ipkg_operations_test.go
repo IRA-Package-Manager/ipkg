@@ -8,7 +8,7 @@ import (
 	"github.com/ira-package-manager/ipkg"
 )
 
-func TestInstallAndRemove(t *testing.T) {
+func TestInstallUncompressed(t *testing.T) {
 	// Opening database
 	root, err := ipkg.OpenRoot("./test/db")
 	if err != nil {
@@ -19,6 +19,23 @@ func TestInstallAndRemove(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	testInstalled(root, t)
+}
+
+func TestInstallCompressed(t *testing.T) {
+	root, err := ipkg.OpenRoot("./test/db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Checking installisation
+	err = root.InstallPackage("./test/pkgs/testpkg.ipkg", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testInstalled(root, t)
+}
+
+func testInstalled(root *ipkg.Root, t *testing.T) {
 	if !exists("./test/db/testpkg-$1.0") {
 		t.Error("package wasn't installed in root")
 	} else if !exists("./test/db/testpkg-$1.0/scripts", "./test/db/testpkg-$1.0/cfg") {
@@ -28,14 +45,18 @@ func TestInstallAndRemove(t *testing.T) {
 	} else if !exists("./test/db/testpkg-$1.0/.ira/iscript") {
 		t.Error("IScript wasn't saved")
 	}
-	if _, err = root.FindPackage("testpkg", "1.0"); err == sql.ErrNoRows {
+	if _, err := root.FindPackage("testpkg", "1.0"); err == sql.ErrNoRows {
 		t.Error("package is not in database")
 	}
 	if t.Failed() {
 		return
 	}
 	// Checking remove
-	err = root.RemovePackage("testpkg", "1.0", true)
+	testRemove(root, t)
+}
+
+func testRemove(root *ipkg.Root, t *testing.T) {
+	err := root.RemovePackage("testpkg", "1.0", true)
 	if err != nil {
 		t.Fatal(err)
 	}

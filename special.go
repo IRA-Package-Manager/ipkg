@@ -70,11 +70,22 @@ func unzipFile(f *zip.File, destination string) error {
 
 }
 
-func exists(filePaths ...string) bool {
-	for _, path := range filePaths {
-		if _, err := os.Lstat(path); os.IsNotExist(err) {
-			return false
-		}
+func exists(filePath string) bool {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return false
 	}
+
 	return true
+}
+
+func createIfNotExists(dir string, perm os.FileMode) error {
+	if exists(dir) {
+		return nil
+	}
+
+	if err := os.MkdirAll(dir, perm); err != nil {
+		return fmt.Errorf("failed to create directory: '%s', error: '%s'", dir, err.Error())
+	}
+
+	return nil
 }

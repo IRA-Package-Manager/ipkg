@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -215,7 +214,7 @@ func unzipPackage(path string) (string, error) {
 	destination := strings.TrimSuffix(archivePath, ".zip")
 	// Unzipping archive
 	for _, f := range archive.File {
-		err := unzipFile(f, filepath.Join(tempDir, destination))
+		err := unzipFile(f, destination)
 		if err != nil {
 			return "", err
 		}
@@ -226,26 +225,15 @@ func unzipPackage(path string) (string, error) {
 // Prepares package before unzipping
 func prepareCompressedPackage(path, tempDir string) (string, error) {
 	// Creating temporary dir if not exists
-	err := os.MkdirAll(tempDir, os.ModePerm)
-	if err != nil && !os.IsExist(err) {
+	err := createIfNotExists(tempDir, os.ModePerm)
+	if err != nil {
 		return "", fmt.Errorf("making temporary dir: %v", err)
 	}
 
 	archivePath := filepath.Join(tempDir, strings.TrimSuffix(filepath.Base(path), ".ipkg")+".zip") // path to new zip archive
-	src, err := os.Create(archivePath)
-	if err != nil {
-		return "", fmt.Errorf("creating temporary file %s: %v", archivePath, err)
-	}
-	defer src.Close()
-
-	dest, err := os.Open(path)
-	if err != nil {
-		return "", fmt.Errorf("opening package %s: %v", path, err)
-	}
-	defer dest.Close()
 
 	// Copying IPKG to temporary folder as ZIP archive
-	if _, err = io.Copy(dest, src); err != nil {
+	if err = copy(path, archivePath); err != nil {
 		return "", fmt.Errorf("copying package %s to temporary place %s: %v", path, archivePath, err)
 	}
 	return archivePath, nil
