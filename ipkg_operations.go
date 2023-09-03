@@ -82,7 +82,7 @@ func (r *Root) InstallPackage(path string, asDependency bool) error {
 	if err != nil {
 		return fmt.Errorf("saving IScript: %w", err)
 	}
-	// We need only add package in database
+	// Now, we need to add package in database
 	var byUser int
 	if asDependency {
 		byUser = 0
@@ -92,6 +92,11 @@ func (r *Root) InstallPackage(path string, asDependency bool) error {
 	_, err = r.db.Exec("INSERT INTO packages VALUES (NULL, ?, ?, ?, ?, 0)", config.Name, config.Version, config.SerializeDependencies(), byUser)
 	if err != nil {
 		return fmt.Errorf("adding package to database: %v", err)
+	}
+	// After all, activating this package
+	err = r.ActivatePackage(config.Name, config.Version)
+	if err != nil {
+		return fmt.Errorf("activating package: %w", err)
 	}
 	return nil
 }
@@ -121,11 +126,7 @@ func (r *Root) activate(name, version string) error {
 			return fmt.Errorf("scanning activation log: %w", err)
 		}
 		file.Close()
-		flag, err := os.Create(filepath.Join(path, ".ira", "deactivated"))
-		if err != nil {
-			return fmt.Errorf("creating flag file: %w", err)
-		}
-		flag.Close()
+		os.Remove(filepath.Join(path, ".ira", "deactivated"))
 	}
 	return nil
 }
