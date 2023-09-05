@@ -98,12 +98,26 @@ func (r *Root) InstallPackage(path string, asDependency bool) error {
 	if err != nil {
 		return fmt.Errorf("activating package: %w", err)
 	}
-	r.removeOld(config.Name)
+	err = r.removeOld(config.Name)
+	if err != nil {
+		return fmt.Errorf("removing old packages: %w", err)
+	}
 	return nil
 }
 
-func (r *Root) removeOld(name string) {
-
+func (r *Root) removeOld(name string) error {
+	pkgs, err := r.FindPackagesByName(name)
+	if err != nil {
+		return err
+	}
+	if len(pkgs) > 5 {
+		SortByVersion.Sort(pkgs, true)
+		pkgToRemove := pkgs[0]
+		if !r.IsActive(pkgToRemove.Name, pkgToRemove.Version) {
+			return r.RemovePackage(pkgToRemove.Name, pkgToRemove.Version, true)
+		}
+	}
+	return nil
 }
 
 func (r *Root) activate(name, version string) error {
@@ -111,7 +125,7 @@ func (r *Root) activate(name, version string) error {
 		return fmt.Errorf("package %s-$%s is not installed", name, version)
 	}
 	path := filepath.Join(r.path, name+"-$"+version)
-	if !exists(filepath.Join(path, ".ira", "deactivated")) {
+	if r.IsActive(name, version) {
 		return nil // activated
 	}
 	log := filepath.Join(path, ".ira", "activate.log")
@@ -141,7 +155,7 @@ func (r *Root) deactivate(name, version string) error {
 		return fmt.Errorf("package %s-$%s is not installed", name, version)
 	}
 	path := filepath.Join(r.path, name+"-$"+version)
-	if exists(filepath.Join(path, ".ira", "deactivated")) {
+	if !r.IsActive(name, version) {
 		return nil // deactivated
 	}
 	log := filepath.Join(path, ".ira", "activate.log")

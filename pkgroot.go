@@ -67,6 +67,14 @@ func (r *Root) FindPackage(name string, version string) (*PkgConfig, error) {
 	return cfg, nil
 }
 
+func (r *Root) IsActive(name, version string) bool {
+	if _, err := r.FindPackage(name, version); err == sql.ErrNoRows {
+		return false
+	}
+	path := filepath.Join(r.path, name+"-$"+version)
+	return !exists(filepath.Join(path, ".ira", "deactivated"))
+}
+
 // This function return all packages with the same name
 func (r *Root) FindPackagesByName(name string) ([]PkgConfig, error) {
 	var result []PkgConfig
