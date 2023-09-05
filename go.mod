@@ -6,7 +6,7 @@ require github.com/mattn/go-sqlite3 v1.14.17
 
 require (
 	github.com/fatih/color v1.15.0
-	github.com/ira-package-manager/iscript v0.0.0-20230829074914-e717eb61ebaf
+	github.com/ira-package-manager/iscript v0.0.0-20230903081757-70166a1340c3
 )
 
 require (
