@@ -98,7 +98,12 @@ func (r *Root) InstallPackage(path string, asDependency bool) error {
 	if err != nil {
 		return fmt.Errorf("activating package: %w", err)
 	}
+	r.removeOld(config.Name)
 	return nil
+}
+
+func (r *Root) removeOld(name string) {
+
 }
 
 func (r *Root) activate(name, version string) error {

@@ -13,9 +13,6 @@ clean:
 # ----------------------------------------------
 #                  HELPERS
 # ----------------------------------------------
-help:
-    @echo 'Usage:'
-    @sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
 
 confirm:
 	@echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
@@ -66,7 +63,7 @@ audit:
 	go mod verify
 	go vet
 	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./...
-	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+	govulncheck ./...
 	go test -v -race -buildvcs -vet=off ./...
 
 lint:

@@ -17,7 +17,6 @@ type PkgConfig struct {
 	SupportWindows bool
 	SupportLinux   bool
 	Build          bool // true when package needs to be built
-	CleanUpdate    bool
 }
 
 // This function checks if all dependencies are statisfied or not.
