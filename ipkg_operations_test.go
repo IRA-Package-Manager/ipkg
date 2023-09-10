@@ -2,9 +2,9 @@ package ipkg_test
 
 import (
 	"database/sql"
-	"os"
 	"testing"
 
+	osextra "github.com/ira-package-manager/gobetter/os_extra"
 	"github.com/ira-package-manager/ipkg"
 )
 
@@ -36,13 +36,13 @@ func TestInstallCompressed(t *testing.T) {
 }
 
 func testInstalled(root *ipkg.Root, t *testing.T) {
-	if !exists("./test/db/testpkg-$1.0") {
+	if !osextra.Exists("./test/db/testpkg-$1.0") {
 		t.Error("package wasn't installed in root")
-	} else if !exists("./test/db/testpkg-$1.0/scripts", "./test/db/testpkg-$1.0/cfg") {
+	} else if !osextra.Exists("./test/db/testpkg-$1.0/scripts", "./test/db/testpkg-$1.0/cfg") {
 		t.Error("package has wrong structure")
-	} else if !exists("./test/db/testpkg-$1.0/scripts/run.sh", "./test/db/testpkg-$1.0/cfg/main.ini") {
+	} else if !osextra.Exists("./test/db/testpkg-$1.0/scripts/run.sh", "./test/db/testpkg-$1.0/cfg/main.ini") {
 		t.Error("package has no files")
-	} else if !exists("./test/db/testpkg-$1.0/.ira/iscript") {
+	} else if !osextra.Exists("./test/db/testpkg-$1.0/.ira/iscript") {
 		t.Error("IScript wasn't saved")
 	}
 	if _, err := root.FindPackage("testpkg", "1.0"); err == sql.ErrNoRows {
@@ -60,7 +60,7 @@ func testRemove(root *ipkg.Root, t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if exists("./test/db/testpkg-$1.0") {
+	if osextra.Exists("./test/db/testpkg-$1.0") {
 		t.Error("package wasn't removed")
 	}
 	if _, err = root.FindPackage("testpkg", "1.0"); err == nil {
@@ -68,13 +68,4 @@ func testRemove(root *ipkg.Root, t *testing.T) {
 	} else if err != sql.ErrNoRows {
 		t.Error(err)
 	}
-}
-
-func exists(filePaths ...string) bool {
-	for _, path := range filePaths {
-		if _, err := os.Lstat(path); os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
 }

@@ -1,7 +1,6 @@
 package ipkg
 
 import (
-	"archive/zip"
 	"bufio"
 	"bytes"
 	"database/sql"
@@ -13,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 
+	osextra "github.com/ira-package-manager/gobetter/os_extra"
 	"github.com/ira-package-manager/iscript"
 )
 
@@ -59,7 +59,7 @@ func (r *Root) InstallPackage(path string, asDependency bool) error {
 	}
 	// Creating installation folder
 	installDir := filepath.Join(r.path, config.Name+"-$"+config.Version)
-	if err = os.Mkdir(installDir, os.ModePerm); !os.IsExist(err) && err != nil {
+	if err = osextra.CreateIfNotExists(installDir, os.ModePerm); err != nil {
 		return fmt.Errorf("creating installation folder: %w", err)
 	}
 	// Installing using IScript
@@ -74,11 +74,11 @@ func (r *Root) InstallPackage(path string, asDependency bool) error {
 		return fmt.Errorf("parsing iscript: %w", err)
 	}
 	// Copying IScript for future manipulations
-	if err = os.Mkdir(filepath.Join(installDir, ".ira"), os.ModePerm); !os.IsExist(err) && err != nil {
+	if err = osextra.CreateIfNotExists(filepath.Join(installDir, ".ira"), os.ModePerm); err != nil {
 		return fmt.Errorf("creating configuration folder: %w", err)
 	}
 
-	err = copy(filepath.Join(workPath, ".ira", "iscript"), filepath.Join(installDir, ".ira", "iscript"))
+	err = osextra.Copy(filepath.Join(workPath, ".ira", "iscript"), filepath.Join(installDir, ".ira", "iscript"))
 	if err != nil {
 		return fmt.Errorf("saving IScript: %w", err)
 	}
@@ -101,84 +101,6 @@ func (r *Root) InstallPackage(path string, asDependency bool) error {
 	err = r.removeOld(config.Name)
 	if err != nil {
 		return fmt.Errorf("removing old packages: %w", err)
-	}
-	return nil
-}
-
-func (r *Root) removeOld(name string) error {
-	pkgs, err := r.FindPackagesByName(name)
-	if err != nil {
-		return err
-	}
-	if len(pkgs) > 5 {
-		SortByVersion.Sort(pkgs, true)
-		pkgToRemove := pkgs[0]
-		if !r.IsActive(pkgToRemove.Name, pkgToRemove.Version) {
-			return r.RemovePackage(pkgToRemove.Name, pkgToRemove.Version, true)
-		}
-	}
-	return nil
-}
-
-func (r *Root) activate(name, version string) error {
-	if _, err := r.FindPackage(name, version); err == sql.ErrNoRows {
-		return fmt.Errorf("package %s-$%s is not installed", name, version)
-	}
-	path := filepath.Join(r.path, name+"-$"+version)
-	if r.IsActive(name, version) {
-		return nil // activated
-	}
-	log := filepath.Join(path, ".ira", "activate.log")
-	if exists(log) {
-		file, err := os.Open(log)
-		if err != nil {
-			return fmt.Errorf("opening activation log: %w", err)
-		}
-		defer file.Close()
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			parsedLog := strings.Split(scanner.Text(), " ")
-			// Note: ignoring errors
-			os.Symlink(parsedLog[0], parsedLog[1])
-		}
-		if scanner.Err() != nil {
-			return fmt.Errorf("scanning activation log: %w", err)
-		}
-		file.Close()
-		os.Remove(filepath.Join(path, ".ira", "deactivated"))
-	}
-	return nil
-}
-
-func (r *Root) deactivate(name, version string) error {
-	if _, err := r.FindPackage(name, version); err == sql.ErrNoRows {
-		return fmt.Errorf("package %s-$%s is not installed", name, version)
-	}
-	path := filepath.Join(r.path, name+"-$"+version)
-	if !r.IsActive(name, version) {
-		return nil // deactivated
-	}
-	log := filepath.Join(path, ".ira", "activate.log")
-	if exists(log) {
-		file, err := os.Open(log)
-		if err != nil {
-			return fmt.Errorf("opening activation log: %w", err)
-		}
-		defer file.Close()
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			// Note: igroring errors
-			os.Remove(strings.Split(scanner.Text(), " ")[1])
-		}
-		if scanner.Err() != nil {
-			return fmt.Errorf("scanning activation log: %w", err)
-		}
-		file.Close()
-		flag, err := os.Create(filepath.Join(path, ".ira", "deactivated"))
-		if err != nil {
-			return fmt.Errorf("creating flag file: %w", err)
-		}
-		flag.Close()
 	}
 	return nil
 }
@@ -239,33 +161,82 @@ func (r *Root) RemovePackage(name, version string, removeDependencies bool) erro
 	return nil
 }
 
-func unzipPackage(path string) (string, error) {
-	// Getting paths used for unzipping
-	tempDir := filepath.Join(os.TempDir(), "ira", "ipkg", "install")
-	archivePath, err := prepareCompressedPackage(path, tempDir)
+func (r *Root) removeOld(name string) error {
+	pkgs, err := r.FindPackagesByName(name)
 	if err != nil {
-		return "", err
+		return err
 	}
-
-	// Opening archive
-	archive, err := zip.OpenReader(archivePath)
-	if err != nil {
-		return "", fmt.Errorf("opening %s as archive: %v", path, err)
-	}
-	defer archive.Close()
-	archivePath, err = filepath.Abs(archivePath) // needed in security purposes
-	if err != nil {
-		return "", err
-	}
-	destination := strings.TrimSuffix(archivePath, ".zip")
-	// Unzipping archive
-	for _, f := range archive.File {
-		err := unzipFile(f, destination)
-		if err != nil {
-			return "", err
+	if len(pkgs) > 5 {
+		SortByVersion.Sort(pkgs, true)
+		pkgToRemove := pkgs[0]
+		if !r.IsActive(pkgToRemove.Name, pkgToRemove.Version) {
+			return r.RemovePackage(pkgToRemove.Name, pkgToRemove.Version, true)
 		}
 	}
-	return destination, nil
+	return nil
+}
+
+func (r *Root) activate(name, version string) error {
+	if _, err := r.FindPackage(name, version); err == sql.ErrNoRows {
+		return fmt.Errorf("package %s-$%s is not installed", name, version)
+	}
+	path := filepath.Join(r.path, name+"-$"+version)
+	if r.IsActive(name, version) {
+		return nil // activated
+	}
+	log := filepath.Join(path, ".ira", "activate.log")
+	if osextra.Exists(log) {
+		file, err := os.Open(log)
+		if err != nil {
+			return fmt.Errorf("opening activation log: %w", err)
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			parsedLog := strings.Split(scanner.Text(), " ")
+			// Note: ignoring errors
+			os.Symlink(parsedLog[0], parsedLog[1])
+		}
+		if scanner.Err() != nil {
+			return fmt.Errorf("scanning activation log: %w", err)
+		}
+		file.Close()
+		os.Remove(filepath.Join(path, ".ira", "deactivated"))
+	}
+	return nil
+}
+
+func (r *Root) deactivate(name, version string) error {
+	if _, err := r.FindPackage(name, version); err == sql.ErrNoRows {
+		return fmt.Errorf("package %s-$%s is not installed", name, version)
+	}
+	path := filepath.Join(r.path, name+"-$"+version)
+	if !r.IsActive(name, version) {
+		return nil // deactivated
+	}
+	log := filepath.Join(path, ".ira", "activate.log")
+	if osextra.Exists(log) {
+		file, err := os.Open(log)
+		if err != nil {
+			return fmt.Errorf("opening activation log: %w", err)
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			// Note: igroring errors
+			os.Remove(strings.Split(scanner.Text(), " ")[1])
+		}
+		if scanner.Err() != nil {
+			return fmt.Errorf("scanning activation log: %w", err)
+		}
+		file.Close()
+		flag, err := os.Create(filepath.Join(path, ".ira", "deactivated"))
+		if err != nil {
+			return fmt.Errorf("creating flag file: %w", err)
+		}
+		flag.Close()
+	}
+	return nil
 }
 
 func (r *Root) removeDependency(name, version string, isRequired bool) error {
@@ -295,7 +266,7 @@ func (r *Root) removeDependency(name, version string, isRequired bool) error {
 // Prepares package before unzipping
 func prepareCompressedPackage(path, tempDir string) (string, error) {
 	// Creating temporary dir if not exists
-	err := createIfNotExists(tempDir, os.ModePerm)
+	err := osextra.CreateIfNotExists(tempDir, os.ModePerm)
 	if err != nil {
 		return "", fmt.Errorf("making temporary dir: %v", err)
 	}
@@ -303,7 +274,7 @@ func prepareCompressedPackage(path, tempDir string) (string, error) {
 	archivePath := filepath.Join(tempDir, strings.TrimSuffix(filepath.Base(path), ".ipkg")+".zip") // path to new zip archive
 
 	// Copying IPKG to temporary folder as ZIP archive
-	if err = copy(path, archivePath); err != nil {
+	if err = osextra.Copy(path, archivePath); err != nil {
 		return "", fmt.Errorf("copying package %s to temporary place %s: %v", path, archivePath, err)
 	}
 	return archivePath, nil

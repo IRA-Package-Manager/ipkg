@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	osextra "github.com/ira-package-manager/gobetter/os_extra"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -72,7 +73,7 @@ func (r *Root) IsActive(name, version string) bool {
 		return false
 	}
 	path := filepath.Join(r.path, name+"-$"+version)
-	return !exists(filepath.Join(path, ".ira", "deactivated"))
+	return !osextra.Exists(filepath.Join(path, ".ira", "deactivated"))
 }
 
 // This function return all packages with the same name

@@ -9,27 +9,33 @@ import (
 	"strings"
 )
 
-func copy(srcFile, dstFile string) error {
-	out, err := os.Create(dstFile)
+func unzipPackage(path string) (string, error) {
+	// Getting paths used for unzipping
+	tempDir := filepath.Join(os.TempDir(), "ira", "ipkg", "install")
+	archivePath, err := prepareCompressedPackage(path, tempDir)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	defer out.Close()
-
-	in, err := os.Open(srcFile)
+	// Opening archive
+	archive, err := zip.OpenReader(archivePath)
 	if err != nil {
-		return err
+		return "", fmt.Errorf("opening %s as archive: %v", path, err)
 	}
-
-	defer in.Close()
-
-	_, err = io.Copy(out, in)
+	defer archive.Close()
+	archivePath, err = filepath.Abs(archivePath) // needed in security purposes
 	if err != nil {
-		return err
+		return "", err
 	}
-
-	return nil
+	destination := strings.TrimSuffix(archivePath, ".zip")
+	// Unzipping archive
+	for _, f := range archive.File {
+		err := unzipFile(f, destination)
+		if err != nil {
+			return "", err
+		}
+	}
+	return destination, nil
 }
 
 func unzipFile(f *zip.File, destination string) error {
@@ -68,24 +74,4 @@ func unzipFile(f *zip.File, destination string) error {
 	}
 	return nil
 
-}
-
-func exists(filePath string) bool {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return false
-	}
-
-	return true
-}
-
-func createIfNotExists(dir string, perm os.FileMode) error {
-	if exists(dir) {
-		return nil
-	}
-
-	if err := os.MkdirAll(dir, perm); err != nil {
-		return fmt.Errorf("failed to create directory: '%s', error: '%s'", dir, err.Error())
-	}
-
-	return nil
 }
