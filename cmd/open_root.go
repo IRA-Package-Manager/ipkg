@@ -1,10 +1,11 @@
-package cmd
+package main
 
 import (
 	"flag"
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/ira-package-manager/gobetter/cmd"
 	"github.com/ira-package-manager/ipkg"
 )
 
@@ -35,7 +36,7 @@ func (or *OpenRoot) Name() string { return or.flagSet.Name() }
 
 func (or *OpenRoot) Run() error {
 	if !or.ready {
-		return ErrNotReady
+		return cmd.ErrNotReady
 	}
 	if _, err := os.Stat(or.path); os.IsNotExist(err) {
 		root, err := ipkg.CreateRoot(or.path)

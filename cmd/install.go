@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"flag"
@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/fatih/color"
+	"github.com/ira-package-manager/gobetter/cmd"
 	"github.com/ira-package-manager/ipkg"
 )
 
@@ -42,7 +43,7 @@ func (i *Install) Name() string {
 
 func (i *Install) Run() error {
 	if !i.ready {
-		return ErrNotReady
+		return cmd.ErrNotReady
 	}
 	if config.root == nil {
 		home, err := os.UserHomeDir()

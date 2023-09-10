@@ -19,7 +19,7 @@ type PkgConfig struct {
 	Build          bool // true when package needs to be built
 }
 
-// This function checks if all dependencies are statisfied or not.
+// CheckDependencies checks if all dependencies are statisfied or not.
 // root is a package root used to package installation.
 // Returns boolean means success of check or fail and error if there were some errors
 func (cfg *PkgConfig) CheckDependencies(root *Root) (bool, error) {
@@ -92,8 +92,8 @@ func UnserializeDependencies(serialized string) map[string]bool {
 	}
 	ids := strings.Split(serialized, ";")
 	for _, id := range ids {
-		clearId := id[:len(id)-3] // Getting ID without flag
-		result[clearId] = (id[len(id)-3:] == "(!)")
+		clearID := id[:len(id)-3] // Getting ID without flag
+		result[clearID] = (id[len(id)-3:] == "(!)")
 	}
 	return result
 }
@@ -108,13 +108,13 @@ func ParseConfig(path string) (*PkgConfig, error) {
 	}
 	defer configFile.Close()
 	// Secondary, we read this file (and close it)
-	configJson, err := io.ReadAll(configFile)
+	configJSON, err := io.ReadAll(configFile)
 	if err != nil {
 		return config, fmt.Errorf("reading config file: %v", err)
 	}
 	configFile.Close()
 	// And finally, we unmarshal JSON content and getting config
-	err = json.Unmarshal(configJson, &config)
+	err = json.Unmarshal(configJSON, &config)
 	if err != nil {
 		return config, fmt.Errorf("parsing config as JSON: %v", err)
 	}

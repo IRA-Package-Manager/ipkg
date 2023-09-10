@@ -6,19 +6,20 @@ import (
 	"os"
 	"path/filepath"
 
+	osextra "github.com/ira-package-manager/gobetter/os_extra"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// Here install all packages
+// Root is a place where all packages install
 type Root struct {
 	path string
 	db   *sql.DB
 }
 
-// Default path for root
+// DefaultPath is a default path for root
 const DefaultPath = "/ira/ipkg"
 
-// Creates package root on specified path. If directory path not exists, it will be created.
+// CreateRoot creates package root on specified path. If directory path not exists, it will be created.
 func CreateRoot(path string) (*Root, error) {
 	// Checking input parameter
 	err := checkRootPath(path, true)
@@ -51,7 +52,7 @@ func OpenRoot(path string) (*Root, error) {
 	return setupPackageRoot(path)
 }
 
-// This function gets package by name and version. If there is no package, returns sql.ErrNoRows
+// FindPackage gets package by name and version. If there is no package, returns sql.ErrNoRows
 func (r *Root) FindPackage(name string, version string) (*PkgConfig, error) {
 	cfg := new(PkgConfig)
 	cfg.Name = name
@@ -72,10 +73,10 @@ func (r *Root) IsActive(name, version string) bool {
 		return false
 	}
 	path := filepath.Join(r.path, name+"-$"+version)
-	return !exists(filepath.Join(path, ".ira", "deactivated"))
+	return !osextra.Exists(filepath.Join(path, ".ira", "deactivated"))
 }
 
-// This function return all packages with the same name
+// FindPackagesByName returns all packages with the same name
 func (r *Root) FindPackagesByName(name string) ([]PkgConfig, error) {
 	var result []PkgConfig
 	rows, err := r.db.Query("SELECT version, dependencies FROM packages WHERE name = ?", name)
@@ -98,7 +99,7 @@ func (r *Root) FindPackagesByName(name string) ([]PkgConfig, error) {
 	return result, rows.Err()
 }
 
-// This function checks is package installed by user (false) or as dependency (true).
+// IsDependency checks is package installed by user (false) or as dependency (true).
 func (r *Root) IsDependency(name, version string) (bool, error) {
 	var byUser int
 	err := r.db.QueryRow("SELECT by_user FROM packages WHERE name = ? AND version = ?", name, version).Scan(&byUser)
@@ -110,7 +111,7 @@ func (r *Root) IsDependency(name, version string) (bool, error) {
 	return byUser == 0, nil
 }
 
-// This function tries to mark package as installed by user
+// MarkAsUserInstalled tries to mark package as installed by user
 func (r *Root) MarkAsUserInstalled(name, version string) error {
 	isDependency, err := r.IsDependency(name, version)
 	if err == sql.ErrNoRows {

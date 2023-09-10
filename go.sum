@@ -1,7 +1,7 @@
 github.com/fatih/color v1.15.0 h1:kOqh6YHBtK8aywxGerMG2Eq3H6Qgoqeo13Bk2Mv/nBs=
 github.com/fatih/color v1.15.0/go.mod h1:0h5ZqXfHYED7Bhv2ZJamyIOUej9KtShiJESRwBDUSsw=
-github.com/ira-package-manager/iscript v0.0.0-20230829074914-e717eb61ebaf h1:cMUJMQLuxlzyfesLuHJyY0E/L4woC4n1nrPLZNtLV4U=
-github.com/ira-package-manager/iscript v0.0.0-20230829074914-e717eb61ebaf/go.mod h1:qU+qOxZDhPRhqKJkUEZskSQQ0ULI7HhVUElqz3MZTLs=
+github.com/ira-package-manager/gobetter v0.0.0-20230910093258-42b7f2b33da3 h1:XUxk1+hBGg8LvkfhlI5FVsHeabW+k6cloF4A6ocuziE=
+github.com/ira-package-manager/gobetter v0.0.0-20230910093258-42b7f2b33da3/go.mod h1:TXidS/SmSSyWzd+2DEqvatjGEa/53nXtXaB9uRsWj3M=
 github.com/ira-package-manager/iscript v0.0.0-20230903081757-70166a1340c3 h1:GjEKouKv/Twm/mRwMly4YX+qpd+Bb2SVuqo/Om+3ghs=
 github.com/ira-package-manager/iscript v0.0.0-20230903081757-70166a1340c3/go.mod h1:qU+qOxZDhPRhqKJkUEZskSQQ0ULI7HhVUElqz3MZTLs=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=

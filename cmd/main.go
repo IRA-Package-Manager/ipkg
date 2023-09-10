@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	cmd "github.com/ira-package-manager/ipkg/cmd/lib"
+	"github.com/ira-package-manager/gobetter/cmd"
 )
 
 func main() {
 	err := cmd.RunSubcommand(
 		[]cmd.Interface{
-			cmd.NewInstallCommand(),
-			cmd.NewOpenRootCommand(),
+			NewInstallCommand(),
+			NewOpenRootCommand(),
 		}, os.Args[1:])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
