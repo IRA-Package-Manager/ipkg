@@ -194,8 +194,10 @@ func (r *Root) activate(name, version string) error {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			parsedLog := strings.Split(scanner.Text(), " ")
-			// Note: ignoring errors
-			os.Symlink(parsedLog[0], parsedLog[1])
+			err = os.Symlink(parsedLog[0], parsedLog[1])
+			if err != nil {
+				return err
+			}
 		}
 		if scanner.Err() != nil {
 			return fmt.Errorf("scanning activation log: %w", err)

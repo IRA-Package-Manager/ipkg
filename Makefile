@@ -49,7 +49,7 @@ dep:
 	go mod download
 
 dep/lint:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b $(go env GOPATH)/bin v1.54.2
 
 # ----------------------------------------------
 #               QUALITY CONTROL
@@ -67,7 +67,7 @@ audit:
 	go test -v -race -buildvcs -vet=off ./...
 
 lint:
-	golangci-lint run --enable-all
+	golangci-lint run
 
 # ----------------------------------------------
 #                 GIT/GITHUB
