@@ -16,7 +16,7 @@ import (
 	"github.com/ira-package-manager/iscript"
 )
 
-// This function install package which should be set in path. If package is installed by user, asDependency must be false
+// InstallPackage installs package which should be set in path. If package is installed by user, asDependency must be false
 // If package must be installed for another program (as dependency), you should set it as true
 func (r *Root) InstallPackage(path string, asDependency bool) error {
 	pkginfo, err := os.Stat(path)
