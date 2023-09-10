@@ -55,7 +55,7 @@ dep/lint:
 #               QUALITY CONTROL
 # ----------------------------------------------
 
-fmt:
+tidy:
 	go fmt ./...
 	go mod tidy -v
 
