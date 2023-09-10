@@ -20,8 +20,5 @@ jobs:
     - name: Audit code
       run: make audit
 
-    - name: Audit code
-      run: make audit
-
     - name: Run distcheck
       run: make distcheck
